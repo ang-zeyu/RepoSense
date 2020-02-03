@@ -146,6 +146,7 @@ public class RepoConfiguration {
                         "Repository %s is not found in repo-config.csv.", groupConfig.getLocation()));
                 continue;
             }
+            // Add groupconfig's stuff to the matching repoconfig
             matchingRepoConfigs.forEach(matchingRepoConfig -> {
                 matchingRepoConfig.addGroups(groupConfig.getGroupsList());
             });

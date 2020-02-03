@@ -35,6 +35,7 @@ public class CommitInfoExtractor {
 
         for (Author author : config.getAuthorList()) {
             String gitLogResult = GitLog.get(config, author);
+            logger.info("@ extractCommitInfos, for author " + author + " | \n" + gitLogResult);
             List<CommitInfo> authorCommitInfos = parseGitLogResults(gitLogResult);
             repoCommitInfos.addAll(authorCommitInfos);
         }
@@ -47,6 +48,7 @@ public class CommitInfoExtractor {
      */
     private static ArrayList<CommitInfo> parseGitLogResults(String gitLogResult) {
         ArrayList<CommitInfo> commitInfos = new ArrayList<>();
+        // match each commit
         String[] rawCommitInfos = gitLogResult.split(GitLog.COMMIT_INFO_DELIMITER);
 
         if (rawCommitInfos.length < 2) {
@@ -56,6 +58,7 @@ public class CommitInfoExtractor {
 
         // Starts from 1 as index 0 is always empty.
         for (int i = 1; i < rawCommitInfos.length; i++) {
+            // ok, destroy trailing new lines at end of string only
             Matcher matcher = TRAILING_NEWLINES_PATTERN.matcher(rawCommitInfos[i]);
             String rawCommitInfo = matcher.replaceAll("");
 

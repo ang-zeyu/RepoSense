@@ -95,11 +95,13 @@ public class ReportGenerator {
         earliestSinceDate = null;
         progressTracker = new ProgressTracker(configs.size());
 
+        // The meat
         List<Path> reportFoldersAndFiles = cloneAndAnalyzeRepos(configs, outputPath);
 
         Date reportSinceDate = (cliSinceDate.equals(SinceDateArgumentType.ARBITRARY_FIRST_COMMIT_DATE))
                 ? earliestSinceDate : cliSinceDate;
 
+        // Write and generate summary.json
         Optional<Path> summaryPath = FileUtil.writeJsonFile(
                 new SummaryJson(configs, generationDate, reportSinceDate, untilDate, isSinceDateProvided,
                         isUntilDateProvided, RepoSense.getVersion(), ErrorSummary.getInstance().getErrorList()),
@@ -144,7 +146,9 @@ public class ReportGenerator {
      * @return A list of paths to the JSON report files generated for each repository.
      */
     private static List<Path> cloneAndAnalyzeRepos(List<RepoConfiguration> configs, String outputPath) {
+        // Note the type of this map!
         Map<RepoLocation, List<RepoConfiguration>> repoLocationMap = groupConfigsByRepoLocation(configs);
+
         RepoCloner repoCloner = new RepoCloner();
         RepoLocation clonedRepoLocation = null;
 
@@ -155,6 +159,7 @@ public class ReportGenerator {
 
         List<Path> generatedFiles = new ArrayList<>();
         for (int index = 1; index <= repoLocationList.size(); index++) {
+            // Get next repo
             RepoLocation nextRepoLocation = (index < repoLocationList.size()) ? repoLocationList.get(index) : null;
             clonedRepoLocation = repoCloner.getClonedRepoLocation();
 
@@ -166,6 +171,7 @@ public class ReportGenerator {
             if (clonedRepoLocation == null) {
                 handleCloningFailed(configs, currRepoLocation);
             } else {
+                // ** The meat **
                 generatedFiles.addAll(analyzeRepos(outputPath, configs, repoLocationMap.get(clonedRepoLocation),
                         repoCloner.getCurrentRepoDefaultBranch()));
             }
@@ -185,21 +191,25 @@ public class ReportGenerator {
             List<RepoConfiguration> configsToAnalyze, String defaultBranch) {
         Iterator<RepoConfiguration> itr = configsToAnalyze.iterator();
         List<Path> generatedFiles = new ArrayList<>();
+        // iterate configsToAnalyze for the repo
         while (itr.hasNext()) {
             progressTracker.incrementProgress();
             RepoConfiguration configToAnalyze = itr.next();
             configToAnalyze.updateBranch(defaultBranch);
 
+            // just the output path...
             Path repoReportDirectory = Paths.get(outputPath, configToAnalyze.getOutputFolderName());
             logger.info(
                     String.format(progressTracker.getProgress() + " "
                             + MESSAGE_START_ANALYSIS, configToAnalyze.getLocation(), configToAnalyze.getBranch()));
+            // Meat
             try {
                 GitRevParse.assertBranchExists(configToAnalyze, FileUtil.getBareRepoPath(configToAnalyze));
                 GitLsTree.validateFilePaths(configToAnalyze, FileUtil.getBareRepoPath(configToAnalyze));
                 GitClone.cloneFromBareAndUpdateBranch(Paths.get(FileUtil.REPOS_ADDRESS), configToAnalyze);
 
                 FileUtil.createDirectory(repoReportDirectory);
+                // analyzeRepo here!
                 generatedFiles.addAll(analyzeRepo(configToAnalyze, repoReportDirectory.toString()));
             } catch (IOException ioe) {
                 String logMessage = String.format(MESSAGE_ERROR_CREATING_DIRECTORY,
@@ -359,6 +369,7 @@ public class ReportGenerator {
         CommitReportJson commitReportJson = new CommitReportJson(commitSummary, authorshipSummary);
 
         List<Path> generatedFiles = new ArrayList<>();
+        // 'commits.json11111111111111111'
         FileUtil.writeJsonFile(commitReportJson, getIndividualCommitsPath(repoReportDirectory))
                 .ifPresent(generatedFiles::add);
         FileUtil.writeJsonFile(authorshipSummary.getFileResults(), getIndividualAuthorshipPath(repoReportDirectory))

@@ -61,20 +61,29 @@ public class RepoSense {
                 throw new AssertionError("CliArguments's subclass type is unhandled.");
             }
 
+            // ok...
             RepoConfiguration.setFormatsToRepoConfigs(configs, cliArguments.getFormats());
             RepoConfiguration.setDatesToRepoConfigs(configs, cliArguments.getSinceDate(), cliArguments.getUntilDate());
             RepoConfiguration.setStandaloneConfigIgnoredToRepoConfigs(configs,
                     cliArguments.isStandaloneConfigIgnored());
+
+            // The meat
             List<Path> reportFoldersAndFiles = ReportGenerator.generateReposReport(configs,
+                    // output path
                     cliArguments.getOutputFilePath().toAbsolutePath().toString(),
+                    // time zone
                     formatter.format(ZonedDateTime.now(cliArguments.getZoneId())),
+                    // --since -- until
                     cliArguments.getSinceDate(), cliArguments.getUntilDate(),
                     cliArguments.isSinceDateProvided(), cliArguments.isUntilDateProvided());
+
+            // Post processing
             FileUtil.zipFoldersAndFiles(reportFoldersAndFiles, cliArguments.getOutputFilePath().toAbsolutePath(),
                     ".json");
 
             logger.info(TimeUtil.getElapsedTimeMessage());
 
+            // --view
             if (cliArguments.isAutomaticallyLaunching()) {
                 ReportServer.startServer(SERVER_PORT_NUMBER, cliArguments.getOutputFilePath().toAbsolutePath());
             }
@@ -93,10 +102,15 @@ public class RepoSense {
      * @throws IOException if user-supplied csv file does not exists or is not readable.
      */
     public static List<RepoConfiguration> getRepoConfigurations(ConfigCliArguments cliArguments) throws IOException {
+        // Note this method returns a list!
+
+        //Repo config
         List<RepoConfiguration> repoConfigs = new RepoConfigCsvParser(cliArguments.getRepoConfigFilePath()).parse();
+
         List<AuthorConfiguration> authorConfigs;
         List<GroupConfiguration> groupConfigs;
 
+        // Author config
         try {
             authorConfigs = new AuthorConfigCsvParser(cliArguments.getAuthorConfigFilePath()).parse();
             RepoConfiguration.merge(repoConfigs, authorConfigs);
@@ -108,6 +122,7 @@ public class RepoSense {
             logger.log(Level.WARNING, ioe.getMessage(), ioe);
         }
 
+        // Group config
         try {
             groupConfigs = new GroupConfigCsvParser(cliArguments.getGroupConfigFilePath()).parse();
             RepoConfiguration.setGroupConfigsToRepos(repoConfigs, groupConfigs);

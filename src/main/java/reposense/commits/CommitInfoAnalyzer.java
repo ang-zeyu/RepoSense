@@ -55,6 +55,7 @@ public class CommitInfoAnalyzer {
 
         return commitInfos.stream()
                 .map(commitInfo -> analyzeCommit(commitInfo, config))
+                // filter out unknown authors ( i.e. not in config ) and ignored commits
                 .filter(commitResult -> !commitResult.getAuthor().equals(Author.UNKNOWN_AUTHOR)
                         && !CommitHash.isInsideCommitList(commitResult.getHash(), config.getIgnoreCommitList()))
                 .sorted(Comparator.comparing(CommitResult::getTime))
@@ -68,10 +69,13 @@ public class CommitInfoAnalyzer {
         String infoLine = commitInfo.getInfoLine();
         String statLine = commitInfo.getStatLine();
 
+        // ok, split
         String[] elements = infoLine.split(LOG_SPLITTER, 7);
         String hash = elements[COMMIT_HASH_INDEX];
+        // ok get author, may be unknown
         Author author = config.getAuthor(elements[AUTHOR_INDEX], elements[EMAIL_INDEX]);
 
+        // date
         Date date = null;
         try {
             date = GIT_STRICT_ISO_DATE_FORMAT.parse(elements[DATE_INDEX]);
@@ -79,10 +83,12 @@ public class CommitInfoAnalyzer {
             logger.log(Level.WARNING, "Unable to parse the date from git log result for commit.", pe);
         }
 
+        // title, body
         String messageTitle = (elements.length > MESSAGE_TITLE_INDEX) ? elements[MESSAGE_TITLE_INDEX] : "";
         String messageBody = (elements.length > MESSAGE_BODY_INDEX)
                 ? getCommitMessageBody(elements[MESSAGE_BODY_INDEX]) : "";
 
+        // dah ref, split by commas
         String[] refs = elements[REF_NAME_INDEX].split(REF_SPLITTER);
         String[] tags = Arrays.stream(refs).filter(ref -> ref.contains(TAG_PREFIX)).toArray(String[]::new);
         if (tags.length == 0) {
@@ -91,6 +97,7 @@ public class CommitInfoAnalyzer {
             extractTagNames(tags);
         }
 
+        // stats
         int insertion = getInsertion(statLine);
         int deletion = getDeletion(statLine);
         return new CommitResult(author, hash, date, messageTitle, messageBody, tags, insertion, deletion);

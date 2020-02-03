@@ -29,14 +29,18 @@ public class CommitResultAggregator {
     public static CommitContributionSummary aggregateCommitResults(
             RepoConfiguration config, List<CommitResult> commitResults) {
         Date startDate;
+        // nothing interesting here.
         startDate = (config.getSinceDate().equals(SinceDateArgumentType.ARBITRARY_FIRST_COMMIT_DATE))
                 ? getStartDate(commitResults)
                 : config.getSinceDate();
         ReportGenerator.setEarliestSinceDate(startDate);
 
+        // Daily contributions map... aggregate into author NAMEs
+        // ok.
         Map<Author, List<AuthorDailyContribution>> authorDailyContributionsMap =
                 getAuthorDailyContributionsMap(config.getAuthorDisplayNameMap().keySet(), commitResults);
 
+        //ok, just starting last date. Sorted during analyzing.
         Date lastDate = commitResults.size() == 0
                 ? null
                 : getStartOfDate(commitResults.get(commitResults.size() - 1).getTime());
@@ -44,6 +48,7 @@ public class CommitResultAggregator {
         Map<Author, Float> authorContributionVariance =
                 calcAuthorContributionVariance(authorDailyContributionsMap, startDate, lastDate);
 
+        // The problem is somewhere here...
         return new CommitContributionSummary(
                 config.getAuthorDisplayNameMap(),
                 authorDailyContributionsMap,
@@ -58,6 +63,7 @@ public class CommitResultAggregator {
         Map<Author, Float> result = new HashMap<>();
         for (Author author : intervalContributionMaps.keySet()) {
             List<AuthorDailyContribution> contributions = intervalContributionMaps.get(author);
+            // you want the method right below this...
             result.put(author, getContributionVariance(contributions, startDate, lastDate));
         }
         return result;
@@ -93,25 +99,45 @@ public class CommitResultAggregator {
         return variance / totalDays;
     }
 
+    // called with the author display names map
     private static Map<Author, List<AuthorDailyContribution>> getAuthorDailyContributionsMap(
             Set<Author> authorSet, List<CommitResult> commitResults) {
+//        System.out.println("RAWRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRrr\n");
+//        commitResults.forEach(commitResult -> {
+//            System.out.println(commitResult.getHash());
+//            System.out.println(commitResult.getAuthor());
+//        });
+//        System.out.println("RAWRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRrr\n");
+
+        // init, note authorDailyContributionsMap type
         Map<Author, List<AuthorDailyContribution>> authorDailyContributionsMap = new HashMap<>();
         authorSet.forEach(author -> authorDailyContributionsMap.put(author, new ArrayList<>()));
 
         Date commitStartDate = null;
+        // NOTE we are iterating in order of time already!
         for (CommitResult commitResult : commitResults) {
             commitStartDate = getStartOfDate(commitResult.getTime());
             Author commitAuthor = commitResult.getAuthor();
 
+            // ok....
             List<AuthorDailyContribution> authorDailyContributions = authorDailyContributionsMap.get(commitAuthor);
 
+            // Will NOT run if (hasSomething && lastCommitEqualsThisCommitStart)
             if (authorDailyContributions.isEmpty()
+                    // todo improve this mess. lastCommitNotEqualsThisCommitStart
                     || !authorDailyContributions.get(authorDailyContributions.size() - 1).getDate()
                             .equals(commitStartDate)) {
+                // just adds new {@code AuthorDailyContribution}
                 addDailyContributionForNewDate(authorDailyContributions, commitStartDate);
             }
 
+            // add commit number of lines to the daily contrib
             authorDailyContributions.get(authorDailyContributions.size() - 1).addCommitContribution(commitResult);
+
+            System.out.println("RAWRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRrr");
+            System.out.println(commitAuthor);
+            System.out.println(authorDailyContributions.get(authorDailyContributions.size() - 1).getInsertions());
+            System.out.println("RAWRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRrr");
         }
 
         return authorDailyContributionsMap;
@@ -122,6 +148,7 @@ public class CommitResultAggregator {
         authorDailyContributions.add(new AuthorDailyContribution(date));
     }
 
+    // gets a ....... date without the time...?
     private static Date getStartOfDate(Date current) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(current);

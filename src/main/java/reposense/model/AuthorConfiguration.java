@@ -208,6 +208,7 @@ public class AuthorConfiguration {
      * Attempts to find matching {@code Author} given a name and an email.
      * If no matching {@code Author} is found, {@code Author#UNKNOWN_AUTHOR} is returned.
      */
+    // okey dokey.
     public Author getAuthor(String name, String email) {
         if (authorEmailsAndAliasesMap.containsKey(name)) {
             return authorEmailsAndAliasesMap.get(name);

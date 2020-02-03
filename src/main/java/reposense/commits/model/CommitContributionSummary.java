@@ -7,6 +7,7 @@ import reposense.model.Author;
 
 /**
  * Stores the consolidated results of commit analysis.
+ * I think you meant aggregation.
  */
 public class CommitContributionSummary {
     private final Map<Author, List<AuthorDailyContribution>> authorDailyContributionsMap;
